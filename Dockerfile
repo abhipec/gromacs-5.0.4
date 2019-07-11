@@ -24,7 +24,7 @@
 ###############################################################################
 # Build stage
 ###############################################################################
-FROM nvidia/cuda:9.0-devel-ubuntu16.04 as builder
+FROM nvidia/cuda:8.0-devel-ubuntu16.04 as builder
 #ENV http_proxy http://172.16.117.121:3128
 #ENV https_proxy http://172.16.117.121:3128
 
@@ -49,6 +49,9 @@ RUN apt-get update \
     openmpi-bin \
     openmpi-common \
     python \
+    git \
+    unzip \
+    wget \
   && rm -rf /var/lib/apt/lists/*
 ENV LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/lib/openmpi/lib
 
@@ -72,13 +75,20 @@ RUN curl -o fftw.tar.gz http://www.fftw.org/fftw-${FFTW_VERSION}.tar.gz \
   && make -j ${JOBS} \
   && make install
 
+
+RUN mkdir -p /rt
+WORKDIR /rt
+RUN wget -c https://github.com/gromacs/regressiontests/archive/release-5-0.zip
+RUN unzip release-5-0.zip
+WORKDIR /gromacs-src
+
 # build GROMACS and run unit tests
 # To cater to different architectures, we build for all of them
 # and install in different bin/lib directories.
 
 # You can change the architecture list here to add more SIMD types,
 # but make sure to always include SSE2 as a fall-back.
-RUN for ARCH in SSE2 AVX_256 AVX2_256 AVX_512; do \
+RUN for ARCH in SSE2 AVX_256 AVX2_256; do \
      mkdir -p /gromacs-build.${ARCH} && cd /gromacs-build.${ARCH} \
   && CC=gcc CXX=g++ cmake /gromacs-src \
     -DGMX_OPENMP=ON \
@@ -86,7 +96,8 @@ RUN for ARCH in SSE2 AVX_256 AVX2_256 AVX_512; do \
     -DGMX_MPI=OFF \
     -DCUDA_TOOLKIT_ROOT_DIR=/usr/local/cuda \
     -DCMAKE_INSTALL_PREFIX=/gromacs \
-    -DREGRESSIONTEST_DOWNLOAD=ON \
+    -DREGRESSIONTEST_DOWNLOAD=OFF \
+    -DREGRESSIONTEST_PATH=/rt/regressiontests-release-5-0/ \
 #    -DMPIEXEC_PREFLAGS=--allow-run-as-root \
     -DGMX_SIMD=${ARCH} \
     -DCMAKE_INSTALL_BINDIR=bin.${ARCH} \
@@ -105,39 +116,39 @@ RUN for ARCH in SSE2 AVX_256 AVX2_256 AVX_512; do \
 # are dual AVX-512 FMA units, it will be faster to use AVX-512 SIMD, but if
 # there's only a single one we prefer AVX2_256 SIMD instead.
 #
-RUN cd /gromacs-build.AVX_512 \
-  && g++ -O3 -mavx512f -std=c++11 \
-    -DGMX_IDENTIFY_AVX512_FMA_UNITS_STANDALONE=1 \
-    -DGMX_X86_GCC_INLINE_ASM=1 \
-    -DSIMD_AVX_512_CXX_SUPPORTED=1 \
-    -o /gromacs/bin.AVX_512/identifyavx512fmaunits \
-    /gromacs-src/src/gromacs/hardware/identifyavx512fmaunits.cpp
+#RUN cd /gromacs-build.AVX_512 \
+#  && g++ -O3 -mavx512f -std=c++11 \
+#    -DGMX_IDENTIFY_AVX512_FMA_UNITS_STANDALONE=1 \
+#    -DGMX_X86_GCC_INLINE_ASM=1 \
+#    -DSIMD_AVX_512_CXX_SUPPORTED=1 \
+#    -o /gromacs/bin.AVX_512/identifyavx512fmaunits \
+#    /gromacs-src/src/gromacs/hardware/identifyavx512fmaunits.cpp
 
 # 
 # Add architecture-detection script
-COPY gmx-chooser /gromacs/bin/gmx
+#COPY gmx-chooser /gromacs/bin/gmx
 RUN chmod +x /gromacs/bin/gmx
 
 ###############################################################################
 # Final stage
 ###############################################################################
-FROM nvidia/cuda:9.0-runtime-ubuntu16.04
+#FROM nvidia/cuda:8.0-runtime-ubuntu16.04
 
 # install required packages
-RUN apt-get update \
-  && apt-get install -y --no-install-recommends \
-    libgomp1 \
-    libopenmpi-dev \
-    openmpi-bin \
-    openmpi-common \
-    python \
-  && rm -rf /var/lib/apt/lists/*
+#RUN apt-get update \
+#  && apt-get install -y --no-install-recommends \
+#    libgomp1 \
+#    libopenmpi-dev \
+#    openmpi-bin \
+#    openmpi-common \
+#    python \
+#  && rm -rf /var/lib/apt/lists/*
 
 # copy fftw libraries
-COPY --from=builder /usr/local/lib /usr/local/lib
+#COPY --from=builder /usr/local/lib /usr/local/lib
 
 # copy gromacs install
-COPY --from=builder /gromacs /gromacs
+#COPY --from=builder /gromacs /gromacs
 ENV PATH=$PATH:/gromacs/bin
 
 # setup labels
