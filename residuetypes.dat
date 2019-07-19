@@ -144,7 +144,7 @@ DARG  	Protein
 DASN	Protein
 DASP	Protein
 DCYS 	Protein
-DGLN  	Protein
+DGL  	Protein
 DGLU  	Protein
 DGLY	Protein
 DHIS 	Protein
@@ -154,14 +154,14 @@ DHISH	Protein
 DILE  	Protein
 DIL  	Protein
 DLEU  	Protein
-DLYS  	Protein
+DLY  	Protein
 DMET  	Protein
 DPHE  	Protein
 DSER  	Protein
 DTHR  	Protein
 DTRP  	Protein
-DTYR  	Protein
-DVAL    Protein
+DTY   	Protein
+DVA     Protein
 DA	DNA
 DG	DNA
 DC	DNA
