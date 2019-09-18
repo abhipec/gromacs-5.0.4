@@ -149,8 +149,8 @@ RUN chmod +x /gromacs/bin/gmx
 
 # copy gromacs install
 #COPY --from=builder /gromacs /gromacs
-RUN wget https://raw.githubusercontent.com/abhipec/gromacs-5.0.4/master/residuetypes_new.dat
-RUN mv residuetypes_new.dat /gromacs/share/gromacs/residuetypes.dat
+RUN wget https://raw.githubusercontent.com/abhipec/gromacs-5.0.4/master/residuetypes.dat
+RUN mv residuetypes.dat /gromacs/share/gromacs/residuetypes.dat
 ENV PATH=$PATH:/gromacs/bin
 
 # setup labels
